@@ -78,6 +78,7 @@
 		49A9DB6B1EA4B84B008DD8FB /* TransitionController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransitionController.swift; sourceTree = "<group>"; };
 		49FC9BD01DEB472900AC1AA8 /* UIEdgeInsetsExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIEdgeInsetsExtensions.swift; sourceTree = "<group>"; };
 		6CB6D4B11FE7EB6D00F26894 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
+		6CDCD4711FEBC70000FB9B1D /* ImagePickerTrayController.podspec */ = {isa = PBXFileReference; lastKnownFileType = text; path = ImagePickerTrayController.podspec; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +131,7 @@
 		4970E5041DB0DD400078ED23 = {
 			isa = PBXGroup;
 			children = (
+				6CDCD4711FEBC70000FB9B1D /* ImagePickerTrayController.podspec */,
 				4970E5891DB0E0410078ED23 /* ImagePickerTrayController */,
 				4970E5241DB0DD400078ED23 /* ImagePickerTrayControllerTests */,
 				4970E56B1DB0DE110078ED23 /* Example */,
