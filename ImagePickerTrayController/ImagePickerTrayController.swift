@@ -88,11 +88,16 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             }
         }
     }
+    public var allowsAutorotation = false
     
     fileprivate var imageSize: CGSize = .zero
     var heightConstraint: NSLayoutConstraint?
     let portraitTrayHeight: CGFloat
     let landscapeTrayHeight: CGFloat
+    
+    override public var shouldAutorotate: Bool {
+        return self.allowsAutorotation
+    }
     
     /// The actual Tray Height.
     // This is done based on current orientation, because that is correct while transitioning

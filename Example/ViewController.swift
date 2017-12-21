@@ -76,8 +76,8 @@ class ViewController: UIViewController, ImagePickerTrayControllerDelegate {
         controller.add(action: .libraryAction { _ in
             print("Show Library")
         })
-        present(controller, animated: true, completion: nil)
         controller.delegate = self
+        present(controller, animated: true, completion: nil)
     }
     
     fileprivate func hideImagePickerTray() {
