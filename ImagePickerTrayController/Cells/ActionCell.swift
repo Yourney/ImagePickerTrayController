@@ -8,7 +8,7 @@
 
 import Foundation
 
-let spacing = CGPoint(x: 26, y: 14)
+let spacing = CGPoint(x: 5, y: 5)
 fileprivate let stackViewOffset: CGFloat = 6
 
 class ActionCell: UICollectionViewCell {

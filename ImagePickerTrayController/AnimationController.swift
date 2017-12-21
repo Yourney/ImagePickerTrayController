@@ -44,12 +44,37 @@ extension AnimationController: UIViewControllerAnimatedTransitioning {
             transitionContext.completeTransition(false)
             return
         }
-        
         let container = transitionContext.containerView
+        container.backgroundColor = .clear
+        
         container.window?.addGestureRecognizer(gestureRecognizer)
         
+        let trayHeight = to.trayHeight
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        if let superview = container.superview {
+            if #available(iOS 11, *) {
+                let constraint = container.topAnchor.constraint(equalTo: superview.safeAreaLayoutGuide.bottomAnchor, constant: -trayHeight)
+            	constraint.isActive = true
+                to.heightConstraint = constraint
+            } else {
+                let constraint = container.topAnchor.constraint(equalTo: superview.bottomAnchor, constant: -trayHeight)
+                constraint.isActive = true
+                to.heightConstraint = constraint
+            }
+            container.leftAnchor.constraint(equalTo: superview.leftAnchor).isActive = true
+            container.rightAnchor.constraint(equalTo: superview.rightAnchor).isActive = true
+            container.bottomAnchor.constraint(equalTo: superview.bottomAnchor).isActive = true
+            
+            superview.backgroundColor = .clear
+        }
+
         container.addSubview(to.view)
-        container.frame = CGRect(x: 0, y: container.bounds.height-to.trayHeight, width: container.bounds.width, height: to.trayHeight)
+        to.view.translatesAutoresizingMaskIntoConstraints = false
+        to.view.topAnchor.constraint(equalTo: container.topAnchor).isActive = true
+        to.view.leftAnchor.constraint(equalTo: container.leftAnchor).isActive = true
+        to.view.rightAnchor.constraint(equalTo: container.rightAnchor).isActive = true
+        to.view.bottomAnchor.constraint(equalTo: container.bottomAnchor).isActive = true
         to.view.transform = CGAffineTransform(translationX: 0, y: to.trayHeight)
         
         let duration = transitionDuration(using: transitionContext)

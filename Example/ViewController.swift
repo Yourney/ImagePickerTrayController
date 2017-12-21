@@ -7,17 +7,25 @@
 //
 
 import UIKit
+import Photos
+
 import ImagePickerTrayController
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, ImagePickerTrayControllerDelegate {
     
     var rows: [Int] {
         return (0..<100).map { $0 }
     }
     
+    var images = [UIImage]()
+    
+    private var imagePickerTrayController: ImagePickerTrayController?
+    private var cameraView: CameraView?
+    
     fileprivate lazy var tableView: UITableView = {
         let tableView = UITableView()
         tableView.dataSource = self
+        tableView.delegate = self
         tableView.translatesAutoresizingMaskIntoConstraints = false
         
         return tableView
@@ -47,20 +55,21 @@ class ViewController: UIViewController {
         center.addObserver(self, selector: #selector(willShowImagePickerTray(notification:)), name: ImagePickerTrayWillShow, object: nil)
         center.addObserver(self, selector: #selector(willHideImagePickerTray(notification:)), name: ImagePickerTrayWillHide, object: nil)
     }
-    
+        
     // MARK: -
     
     @objc fileprivate func toggleImagePickerTray(_: UIBarButtonItem) {
         if presentedViewController != nil {
-            hideImagePickerTray()
+            self.hideImagePickerTray()
         }
         else {
-            showImagePickerTray()
+            self.showImagePickerTray()
         }
     }
     
     fileprivate func showImagePickerTray() {
         let controller = ImagePickerTrayController()
+        controller.allowsMultipleSelection = false
         controller.add(action: .cameraAction { _ in
             print("Show Camera")
         })
@@ -68,6 +77,7 @@ class ViewController: UIViewController {
             print("Show Library")
         })
         present(controller, animated: true, completion: nil)
+        controller.delegate = self
     }
     
     fileprivate func hideImagePickerTray() {
@@ -108,25 +118,59 @@ class ViewController: UIViewController {
         }, completion: nil)
     }
 
+    // MARK: - ImagePickerTrayControllerDelegate
+    func controller(_ controller: ImagePickerTrayController, didTakeImage image:UIImage) {
+        self.images.insert(image, at: 0)
+        self.tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+    }
+
+    func controller(_ controller: ImagePickerTrayController, didSelectAsset asset: PHAsset) {
+        if let image = asset.image {
+            self.images.insert(image, at: 0)
+            self.tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+        }
+    }
 }
 
 // MARK: - UITableViewDataSource
 
-extension ViewController: UITableViewDataSource {
+extension ViewController: UITableViewDataSource, UITableViewDelegate {
     
     func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return rows.count
+        return images.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: NSStringFromClass(UITableViewCell.self), for: indexPath)
-        cell.textLabel?.text = String(rows[indexPath.row])
+        cell.imageView?.image = images[indexPath.row]
         
         return cell
     }
     
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 150
+    }
+}
+
+private extension PHAsset {
+    var image: UIImage? {
+        
+        var img: UIImage?
+        let manager = PHImageManager.default()
+        let options = PHImageRequestOptions()
+        options.version = .original
+        options.isSynchronous = true
+        manager.requestImageData(for: self, options: options) { data, _, _, _ in
+            
+            if let data = data {
+                img = UIImage(data: data)
+            }
+        }
+        return img
+    }
+
 }

@@ -27,7 +27,6 @@ public enum ImagePickerMediaType {
     @objc optional func controller(_ controller: ImagePickerTrayController, didDeselectAsset asset: PHAsset)
     
     @objc optional func controller(_ controller: ImagePickerTrayController, didTakeImage image:UIImage)
-    
 }
 
 public let ImagePickerTrayWillShow: Notification.Name = Notification.Name(rawValue: "ch.laurinbrandner.ImagePickerTrayWillShow")
@@ -39,20 +38,20 @@ public let ImagePickerTrayDidHide: Notification.Name = Notification.Name(rawValu
 public let ImagePickerTrayFrameUserInfoKey = "ImagePickerTrayFrame"
 public let ImagePickerTrayAnimationDurationUserInfoKey = "ImagePickerTrayAnimationDuration"
 
-fileprivate let animationDuration: TimeInterval = 0.2
+fileprivate let animationDuration: TimeInterval = 0.25
 
-public class ImagePickerTrayController: UIViewController {
+public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
     fileprivate(set) lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.minimumInteritemSpacing = itemSpacing
         layout.minimumLineSpacing = itemSpacing
-        
+
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.contentInset = UIEdgeInsets(top: 1, left: 0, bottom: 2, right: 1)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.backgroundColor = UIColor(red: 209.0/255.0, green: 213.0/255.0, blue: 218.0/255.0, alpha: 1.0)
+        collectionView.backgroundColor = .clear
         collectionView.dataSource = self
         collectionView.delegate = self
         collectionView.showsHorizontalScrollIndicator = false
@@ -65,20 +64,11 @@ public class ImagePickerTrayController: UIViewController {
         return collectionView
     }()
     
-    fileprivate lazy var cameraController: UIImagePickerController = {
-        let controller = UIImagePickerController()
-        controller.delegate =  self
-        controller.sourceType = .camera
-        controller.showsCameraControls = false
-        controller.allowsEditing = false
-        controller.cameraFlashMode = .off
+    fileprivate lazy var cameraView: CameraView = {
+        let cameraView = CameraView()
+        cameraView.delegate = self
         
-        let view = CameraOverlayView()
-        view.addTarget(self, action: #selector(takePicture), for: .touchUpInside)
-        view.flipCameraButton.addTarget(self, action: #selector(flipCamera), for: .touchUpInside)
-        controller.cameraOverlayView = view
-        
-        return controller
+        return cameraView
     }()
     
     fileprivate let imageManager = PHCachingImageManager()
@@ -91,7 +81,6 @@ public class ImagePickerTrayController: UIViewController {
         return options
     }()
     
-    
     public var allowsMultipleSelection = true {
         didSet {
             if isViewLoaded {
@@ -101,9 +90,38 @@ public class ImagePickerTrayController: UIViewController {
     }
     
     fileprivate var imageSize: CGSize = .zero
-    let trayHeight: CGFloat
-
-    fileprivate let actionCellWidth: CGFloat = 162
+    var heightConstraint: NSLayoutConstraint?
+    let portraitTrayHeight: CGFloat
+    let landscapeTrayHeight: CGFloat
+    
+    /// The actual Tray Height.
+    // This is done based on current orientation, because that is correct while transitioning
+    // If the orientation is faceUp or faceDown, we look at the StatusBar orientation.
+    
+    var trayHeight: CGFloat {
+        let orientation = UIDevice.current.orientation
+        
+        switch orientation {
+            case .portrait:
+                return portraitTrayHeight
+            case .portraitUpsideDown:
+                return portraitTrayHeight
+            case .landscapeLeft:
+                return landscapeTrayHeight
+            case .landscapeRight:
+                return landscapeTrayHeight
+            default:
+                // in case of 'unknown' look at the screen size
+                let screenSize = self.view.bounds.size
+                if screenSize.width < screenSize.height {
+                    return portraitTrayHeight
+                } else {
+                    return landscapeTrayHeight
+                }
+        }
+    }
+    
+    fileprivate let actionCellWidth: CGFloat = 100
     fileprivate weak var actionCell: ActionCell?
 
     public fileprivate(set) var actions = [ImagePickerAction]()
@@ -133,10 +151,11 @@ public class ImagePickerTrayController: UIViewController {
     // MARK: - Initialization
     
     public init() {
-        self.trayHeight = 216
+        self.portraitTrayHeight = 216
+		self.landscapeTrayHeight = 140
         
         super.init(nibName: nil, bundle: nil)
-        
+
         transitionController = TransitionController(trayController: self)
         modalPresentationStyle = .custom
         transitioningDelegate = transitionController
@@ -151,16 +170,26 @@ public class ImagePickerTrayController: UIViewController {
     public override func loadView() {
         super.loadView()
         
+        view.backgroundColor = UIColor(red: 209.0/255.0, green: 213.0/255.0, blue: 218.0/255.0, alpha: 1.0)
         view.addSubview(collectionView)
-        collectionView.heightAnchor.constraint(equalToConstant: trayHeight).isActive = true
-        collectionView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-        collectionView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
-        collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        
+        if #available(iOS 11, *) {
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+            collectionView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
+            collectionView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+        } else {
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+            collectionView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+            collectionView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        }
+
         collectionView.allowsMultipleSelection = allowsMultipleSelection
         
         let numberOfRows = (UIDevice.current.userInterfaceIdiom == .pad) ? 3 : 2
         let totalItemSpacing = CGFloat(numberOfRows-1)*itemSpacing + collectionView.contentInset.vertical
-        let side = round((self.trayHeight-totalItemSpacing)/CGFloat(numberOfRows))
+        let side = round((self.trayHeight - totalItemSpacing)/CGFloat(numberOfRows))
         self.imageSize = CGSize(width: side, height: side)
     }
     
@@ -168,13 +197,96 @@ public class ImagePickerTrayController: UIViewController {
         super.viewWillAppear(animated)
         
         fetchAssets()
+        let orientation = UIApplication.shared.statusBarOrientation
+
+        // check orientation, so the CameraView can be displayed in the proper orientation
+        let angle: CGFloat
+        switch orientation {
+        case .portrait:
+            angle = 0.0
+        case .portraitUpsideDown:
+            angle = CGFloat.pi
+        case .landscapeLeft:
+            angle = CGFloat.pi / 2
+        case .landscapeRight:
+            angle = -CGFloat.pi / 2
+        default:
+            angle = 0.0
+        }
+
+        let viewTransform = CGAffineTransform(rotationAngle: angle)
+        self.cameraView.transform = viewTransform
     }
 
     public override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
-        collectionView.setContentOffset(CGPoint(x: actionCellWidth - spacing.x, y: 0), animated: false)
         reloadActionCellDisclosureProgress()
+        self.collectionView.reloadData()
+    }
+    
+    override public func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        
+        // Resize the Tray to fit in the Landcape or Portrait layout
+        let numberOfRows = (UIDevice.current.userInterfaceIdiom == .pad) ? 3 : 2
+        let totalItemSpacing = CGFloat(numberOfRows-1)*itemSpacing + collectionView.contentInset.vertical
+        let side = round((self.trayHeight - totalItemSpacing)/CGFloat(numberOfRows))
+        self.imageSize = CGSize(width: side, height: side)
+
+        self.heightConstraint?.constant = -self.trayHeight
+        self.collectionView.reloadData()
+        
+        let angle: CGFloat
+        
+        switch UIDevice.current.orientation {
+        case .portrait:
+            angle = 0.0
+        case .portraitUpsideDown:
+            angle = CGFloat.pi
+        case .landscapeLeft:
+            angle = -CGFloat.pi / 2
+        case .landscapeRight:
+            angle = CGFloat.pi / 2
+        default:
+            return
+        }
+        
+        // When rotoating, iOS shall always use the shortest way to rotate to the desired angle.
+        // When rotating 180 degrees (for instance from landscapeLeft to landcapeRight),
+        //  we need to make sure it rotates the way we want it to, hence the 0.01
+        //  (which will be corrected in the completion handler)
+        // Especially the transition between the two landscapes occurs a lot, because
+        //   many apps do not support upsideDown Portrait.
+        
+        let almost = angle + 0.01
+        let viewTransform = CGAffineTransform(rotationAngle: almost)
+        
+        coordinator.animate(alongsideTransition: { (context) in
+            self.cameraView.transform = viewTransform
+        }) { (context) in
+            self.cameraView.transform = CGAffineTransform(rotationAngle: angle)
+        }
+
+        // If the device rotates orientation, the area not covered by the Top ViewController's view (i.e. the ImagePickerTrayViewController) will be covered by a Black UIView.
+        // This is standard behaviour with rotating UIViewControllers.
+        // Because we specifically do not want this, we must find the guilty one.
+        // Actually, it can be done by just finding the subview with type UITransitionView, but as this is private api, we cannot use that.
+        // as there are only two subviews, we can clip them both. For now, no harm done (iOS 11).
+        
+        // Beware, this is ugly code. Retest with every iOS release!!
+        // if somebody finds a nicer solution, let me know!
+        if let window = self.view.window {
+            for view in window.subviews {
+                view.clipsToBounds = true
+            }
+        }
+    }
+    
+    public override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        self.cameraView.stopCamera()
     }
     
     // MARK: - Action
@@ -228,14 +340,10 @@ public class ImagePickerTrayController: UIViewController {
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
     
-    // MARK: - Camera
+    // MARK: - CameraViewDelegate
     
-    @objc fileprivate func flipCamera() {
-        cameraController.cameraDevice = (cameraController.cameraDevice == .rear) ? .front : .rear
-    }
-    
-    @objc fileprivate func takePicture() {
-        cameraController.takePicture()
+    func cameraView(cameraView: CameraView, didTake image: UIImage) {
+        self.delegate?.controller?(self, didTakeImage: image)
     }
     
     // MARK: -
@@ -276,13 +384,15 @@ extension ImagePickerTrayController: UICollectionViewDataSource {
             cell.actions = actions
             actionCell = cell
             reloadActionCellDisclosureProgress()
-            
+            cell.clipsToBounds = true
             return cell
         case 1:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NSStringFromClass(CameraCell.self), for: indexPath) as! CameraCell
-            cell.cameraView = cameraController.view
-            cell.cameraOverlayView = cameraController.cameraOverlayView
-            
+            if cell.cameraView == nil {
+                cell.cameraView = self.cameraView
+                cell.cameraOverlayView = CameraOverlayView()
+            }
+            cell.clipsToBounds = true
             return cell
         case 2:
             let asset = assets[indexPath.item]
@@ -291,13 +401,12 @@ extension ImagePickerTrayController: UICollectionViewDataSource {
             cell.isVideo = (asset.mediaType == .video)
             cell.isRemote = (asset.sourceType != .typeUserLibrary)
             requestImage(for: asset) { cell.imageView.image = $0 }
-            
+            cell.clipsToBounds = true
             return cell
         default:
             fatalError("More than 3 sections is invalid.")
         }
     }
-    
 }
 
 // MARK: - UICollectionViewDelegate
@@ -335,14 +444,21 @@ extension ImagePickerTrayController: UICollectionViewDelegate {
 extension ImagePickerTrayController: UICollectionViewDelegateFlowLayout {
     
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let maxItemHeight = collectionView.frame.height-collectionView.contentInset.vertical
+        let maxItemHeight = collectionView.frame.height - collectionView.contentInset.vertical
         
         switch indexPath.section {
-        case 0:
+        case 0:	// Action buttons
+            // are we portrait?
             return CGSize(width: actionCellWidth, height: maxItemHeight)
-        case 1:
-            return CGSize(width: 150, height: maxItemHeight)
-        case 2:
+        case 1: // Camera cell
+            let ratio: CGFloat = 1.5
+            let orientation = UIApplication.shared.statusBarOrientation
+            if orientation == .portrait || orientation == .portraitUpsideDown {
+                return CGSize(width: maxItemHeight / ratio, height: maxItemHeight)
+            } else {
+                return CGSize(width: maxItemHeight * ratio, height: maxItemHeight)
+            }
+        case 2: // Image cell
             return imageSize
         default:
             return .zero
