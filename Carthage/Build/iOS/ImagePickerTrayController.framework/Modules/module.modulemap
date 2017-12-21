@@ -1,0 +1,11 @@
+framework module ImagePickerTrayController {
+  umbrella header "ImagePickerTrayController.h"
+
+  export *
+  module * { export * }
+}
+
+module ImagePickerTrayController.Swift {
+    header "ImagePickerTrayController-Swift.h"
+    requires objc
+}
