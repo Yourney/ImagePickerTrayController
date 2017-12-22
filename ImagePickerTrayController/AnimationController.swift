@@ -92,7 +92,17 @@ extension AnimationController: UIViewControllerAnimatedTransitioning {
         }
         
         let duration = transitionDuration(using: transitionContext)
-        from.heightConstraint?.constant = 0
+        if #available(iOS 11, *) {
+            // in iOS 11, move the view to the view bounds, which means below the safeArea.
+            if let safeFrame = from.view.superview?.safeAreaLayoutGuide.layoutFrame {
+                let bottomDistance = from.view.frame.size.height - safeFrame.size.height - safeFrame.origin.y
+            	from.heightConstraint?.constant = bottomDistance
+            } else {
+                from.heightConstraint?.constant = 0
+            }
+        } else {
+            from.heightConstraint?.constant = 0
+        }
         UIView.animate(withDuration: duration, delay: 0, options: .allowUserInteraction, animations: {
             from.view.layoutIfNeeded()
         }, completion: { _ in

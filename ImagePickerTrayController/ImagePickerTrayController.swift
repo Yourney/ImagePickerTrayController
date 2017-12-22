@@ -297,8 +297,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
-        self.cameraView.stopCamera()
-        
         let screenSize = UIScreen.main.bounds.size
         let screenWidth = screenSize.width
         let screenHeight = screenSize.height
@@ -308,6 +306,8 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
     public override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        
+        self.cameraView.stopCamera()
         
         let screenSize = UIScreen.main.bounds.size
         let screenWidth = screenSize.width
