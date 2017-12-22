@@ -203,7 +203,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         
         fetchAssets()
         let orientation = UIApplication.shared.statusBarOrientation
-
+        
         // check orientation, so the CameraView can be displayed in the proper orientation
         let angle: CGFloat
         switch orientation {
@@ -221,6 +221,12 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
 
         let viewTransform = CGAffineTransform(rotationAngle: angle)
         self.cameraView.transform = viewTransform
+        
+        let screenSize = UIScreen.main.bounds.size
+		let screenWidth = screenSize.width
+        let screenHeight = screenSize.height
+        let imagePickerFrame = CGRect(x: 0, y: screenHeight - self.trayHeight, width: screenWidth, height: self.trayHeight)
+        self.post(name: ImagePickerTrayWillShow, frame: imagePickerFrame, duration: 0.25)
     }
 
     public override func viewDidLayoutSubviews() {
@@ -257,7 +263,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             return
         }
         
-        // When rotoating, iOS shall always use the shortest way to rotate to the desired angle.
+        // When rotating, iOS shall always use the shortest way to rotate to the desired angle.
         // When rotating 180 degrees (for instance from landscapeLeft to landcapeRight),
         //  we need to make sure it rotates the way we want it to, hence the 0.01
         //  (which will be corrected in the completion handler)
@@ -292,6 +298,12 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         super.viewWillDisappear(animated)
         
         self.cameraView.stopCamera()
+        
+        let screenSize = UIScreen.main.bounds.size
+        let screenWidth = screenSize.width
+        let screenHeight = screenSize.height
+        let imagePickerFrame = CGRect(x: 0, y: screenHeight, width: screenWidth, height: self.trayHeight)
+        self.post(name: ImagePickerTrayWillHide, frame: imagePickerFrame, duration: 0.25)
     }
     
     // MARK: - Action
@@ -367,7 +379,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         
         NotificationCenter.default.post(name: name, object: self, userInfo: userInfo)
     }
-    
 }
 
 // MARK: - UICollectionViewDataSource
