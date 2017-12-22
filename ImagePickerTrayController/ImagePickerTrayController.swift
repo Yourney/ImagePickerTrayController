@@ -306,6 +306,16 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         self.post(name: ImagePickerTrayWillHide, frame: imagePickerFrame, duration: 0.25)
     }
     
+    public override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        
+        let screenSize = UIScreen.main.bounds.size
+        let screenWidth = screenSize.width
+        let screenHeight = screenSize.height
+        let imagePickerFrame = CGRect(x: 0, y: screenHeight, width: screenWidth, height: self.trayHeight)
+        self.post(name: ImagePickerTrayDidHide, frame: imagePickerFrame, duration: 0.25)
+    }
+    
     // MARK: - Action
     
     public func add(action: ImagePickerAction) {
