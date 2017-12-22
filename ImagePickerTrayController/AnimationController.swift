@@ -92,8 +92,9 @@ extension AnimationController: UIViewControllerAnimatedTransitioning {
         }
         
         let duration = transitionDuration(using: transitionContext)
+        from.heightConstraint?.constant = 0
         UIView.animate(withDuration: duration, delay: 0, options: .allowUserInteraction, animations: {
-            from.view.frame.origin.y += from.trayHeight
+            from.view.layoutIfNeeded()
         }, completion: { _ in
             if !transitionContext.transitionWasCancelled {
 //                from.view.removeFromSuperview()
