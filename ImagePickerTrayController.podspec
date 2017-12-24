@@ -25,7 +25,7 @@ Pod::Spec.new do |s|
   #   * Write the description between the DESC delimiters below.
   #   * Finally, don't worry about the indent, CocoaPods strips it!
   
-  s.description  = "ImagePicker like in iOS 10 iMessage app."
+  # s.description  = "ImagePicker like in iOS 10 iMessage app."
 
   s.homepage     = "https://github.com/Yourney/ImagePickerTrayController"
   s.screenshots  = "https://raw.githubusercontent.com/Yourney/ImagePickerTrayController/master/Screenshots/iPhoneX.png"
@@ -51,7 +51,7 @@ Pod::Spec.new do |s|
   #  profile URL.
   #
 
-  s.author             = { "WF Wessels" }
+  s.author                 "WF Wessels"
   # Or just: s.author    = "Wouter"
   # s.authors            = { "Wouter" => "email@address.com" }
   # s.social_media_url   = "http://twitter.com/Wouter"
