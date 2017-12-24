@@ -51,7 +51,7 @@ Pod::Spec.new do |s|
   #  profile URL.
   #
 
-  s.author             = { "Wouter" => "email@address.com" }
+  s.author             = { "WF Wessels" }
   # Or just: s.author    = "Wouter"
   # s.authors            = { "Wouter" => "email@address.com" }
   # s.social_media_url   = "http://twitter.com/Wouter"
@@ -78,7 +78,7 @@ Pod::Spec.new do |s|
   #  Supports git, hg, bzr, svn and HTTP.
   #
 
-  s.source       = { :git => "https://github.com/Yourney/ImagePickerTrayController.git", :commit => "f65b1976994303c606d3dffe2a97fabd6b9a1777" }
+  s.source       = { :git => "https://github.com/Yourney/ImagePickerTrayController.git", :tag => s.version }
 
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
@@ -92,7 +92,7 @@ Pod::Spec.new do |s|
   s.source_files  = "ImagePickerTrayController/*.swift",
   					"ImagePickerTrayController/Cells/*.swift",
   					"ImagePickerTrayController/Helpers/*.swift"
-  s.exclude_files = "Classes/Exclude"
+  # s.exclude_files = "Classes/Exclude"
 
   # s.public_header_files = "Classes/**/*.h"
 
@@ -118,7 +118,7 @@ Pod::Spec.new do |s|
   #
 
   # s.framework  = "Photos"
-  # s.frameworks = "SomeFramework", "AnotherFramework"
+  s.frameworks = "UIKit", "Photos"
 
   # s.library   = "iconv"
   # s.libraries = "iconv", "xml2"
