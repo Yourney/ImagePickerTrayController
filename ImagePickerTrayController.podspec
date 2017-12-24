@@ -24,7 +24,8 @@ Pod::Spec.new do |s|
   #   * Try to keep it short, snappy and to the point.
   #   * Write the description between the DESC delimiters below.
   #   * Finally, don't worry about the indent, CocoaPods strips it!
-  s.description  = ImagePicker like in iOS 10 iMessage app.
+  
+  s.description  = "ImagePicker like in iOS 10 iMessage app."
 
   s.homepage     = "https://github.com/Yourney/ImagePickerTrayController"
   s.screenshots  = "https://raw.githubusercontent.com/Yourney/ImagePickerTrayController/master/Screenshots/iPhoneX.png"
