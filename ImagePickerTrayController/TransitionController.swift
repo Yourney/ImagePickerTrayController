@@ -85,17 +85,17 @@ extension TransitionController: UIGestureRecognizerDelegate {
             let translation = gestureRecognizer.translation(in: gestureRecognizer.view)
             let start = end - translation.y
             let threshold = view.frame.maxY - trayController.trayHeight
-            if let transition = interactiveTransition {
-                let progress = end-threshold
+            if let transition = self.interactiveTransition {
+                let progress = end - threshold
                 transition.update(progress/trayController.trayHeight)
             }
-            if start < threshold && end >= threshold && interactiveTransition == nil {
-                interactiveTransition = UIPercentDrivenInteractiveTransition()
+            if start < threshold && end >= threshold && self.interactiveTransition == nil {
+                self.interactiveTransition = UIPercentDrivenInteractiveTransition()
                 trayController.dismiss(animated: true, completion: nil)
             }
         }
         else if gestureRecognizer.state == .cancelled {
-            interactiveTransition?.completionSpeed = 0.95
+            self.interactiveTransition?.completionSpeed = 0.95
             cancel()
         }
         else if gestureRecognizer.state == .ended {
