@@ -403,7 +403,8 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                         self.collectionView.reloadSections(IndexSet(integer: 1))
                     }
                     break
-                case .denied : self.showPhotoAlert()
+                case .denied:
+                    self.showPhotoAlert()
                 case .notDetermined :
                     // request permission
                     AVCaptureDevice.requestAccess(for: AVMediaType.video) {
@@ -440,15 +441,20 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     }
     
     private func showPhotoAlert() {
-        let appName = self.applicationName
-        
-        let alertController = UIAlertController(title: "Permissions", message: "Your privacy settings in iOS do not allow the use of the Camera and / or Photos. Please go to your iOS Settings > Privacy > Photo's and / or iOS Settings > Privacy > Camera and allow \(appName) to use them.", preferredStyle: .alert)
-        
-        let OKAction = UIAlertAction(title: "OK", style: .default) { action in
-            // ...
+        // This will typically be checked at the start of the animation.
+        // It is not allowed to show an Alert during animation, hence we will delay this showing for at least the duration of the animation:
+        let delay = 0.3 // animation = 0.25
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(Int64(delay * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) {
+            let appName = self.applicationName
+            
+            let alertController = UIAlertController(title: "Permissions", message: "Your privacy settings in iOS do not allow the use of the Camera and / or Photos. Please go to your iOS Settings > Privacy > Photo's and / or iOS Settings > Privacy > Camera and allow \(appName) to use them.", preferredStyle: .alert)
+            
+            let OKAction = UIAlertAction(title: "OK", style: .default) { action in
+                // ...
+            }
+            alertController.addAction(OKAction)
+            self.present(alertController, animated: true)
         }
-        alertController.addAction(OKAction)
-        self.present(alertController, animated: true)
     }
     
     private var applicationName: String {
