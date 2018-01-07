@@ -133,7 +133,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
 
     fileprivate var sections: [Int] {
         let actionSection = (actions.count > 0) ? 1 : 0
-        let cameraSection = UIImagePickerController.isSourceTypeAvailable(.camera) ? 1 : 0
+        let cameraSection = UIImagePickerController.isSourceTypeAvailable(.camera) && AVCaptureDevice.authorizationStatus(for: AVMediaType.video) == .authorized ? 1 : 0
         let assetSection = assets.count
         
         return [actionSection, cameraSection, assetSection]
@@ -196,6 +196,8 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         let totalItemSpacing = CGFloat(numberOfRows-1)*itemSpacing + collectionView.contentInset.vertical
         let side = round((self.trayHeight - totalItemSpacing)/CGFloat(numberOfRows))
         self.imageSize = CGSize(width: side, height: side)
+        
+        self.requestAccess()
     }
     
     public override func viewWillAppear(_ animated: Bool) {
@@ -324,11 +326,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
     // MARK: - Images
     
-    fileprivate func prepareAssets() {
-        fetchAssets()
-    }
-    
-    fileprivate func fetchAssets() {
+    private func fetchAssets() {
         let options = PHFetchOptions()
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         options.fetchLimit = 100
@@ -339,7 +337,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         })
     }
     
-    fileprivate func requestImage(for asset: PHAsset, completion: @escaping (_ image: UIImage?) -> ()) {
+    private func requestImage(for asset: PHAsset, completion: @escaping (_ image: UIImage?) -> ()) {
         requestOptions.isSynchronous = true
         let size = scale(imageSize: imageSize)
         
@@ -357,12 +355,12 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         }
     }
     
-    fileprivate func prefetchImages(for asset: PHAsset) {
+    private func prefetchImages(for asset: PHAsset) {
         let size = scale(imageSize: imageSize)
         imageManager.startCachingImages(for: [asset], targetSize: size, contentMode: .aspectFill, options: requestOptions)
     }
     
-    fileprivate func scale(imageSize size: CGSize) -> CGSize {
+    private func scale(imageSize size: CGSize) -> CGSize {
         let scale = UIScreen.main.scale
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
@@ -375,13 +373,13 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
     // MARK: -
     
-    fileprivate func reloadActionCellDisclosureProgress() {
+    private func reloadActionCellDisclosureProgress() {
         if sections[0] > 0 {
             actionCell?.disclosureProcess = (collectionView.contentOffset.x / (actionCellWidth/2))
         }
     }
     
-    fileprivate func post(name: Notification.Name, frame: CGRect, duration: TimeInterval?) {
+    private func post(name: Notification.Name, frame: CGRect, duration: TimeInterval?) {
         var userInfo: [AnyHashable: Any] = [ImagePickerTrayFrameUserInfoKey: frame]
         if let duration = duration {
             userInfo[ImagePickerTrayAnimationDurationUserInfoKey] = duration
@@ -389,6 +387,66 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         
         NotificationCenter.default.post(name: name, object: self, userInfo: userInfo)
     }
+    
+    private func requestAccess() {
+        
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            let authStatus = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
+            switch authStatus {
+            case .authorized : break
+            case .denied : self.showPhotoAlert()
+            case .restricted : break
+            case .notDetermined :
+                // request permission
+                AVCaptureDevice.requestAccess(for: AVMediaType.video) {
+                    (granted) in
+                    DispatchQueue.main.async {
+                        self.collectionView.reloadSections(IndexSet(integer: 1))
+                    }
+                    if granted {
+                        print("Video granted")
+                    } else {
+                        print("Video not granted")
+                    }
+                }
+            }
+        }
+        
+        if UIImagePickerController.isSourceTypeAvailable(.photoLibrary) {
+            let photos = PHPhotoLibrary.authorizationStatus()
+            if photos == .notDetermined {
+                PHPhotoLibrary.requestAuthorization {
+                    (status) in
+                    print("Photo library access \(status)")
+                    DispatchQueue.main.async {
+                        self.fetchAssets()
+                        self.collectionView.reloadSections(IndexSet(integer: 2))
+                    }
+                }
+            }
+        }
+    }
+    
+    private func showPhotoAlert() {
+        let appName = self.applicationName
+        
+        let alertController = UIAlertController(title: "Permissions", message: "Your privacy settings in iOS do not allow the use of the Camera and / or Photos. Please go to your iOS Settings > Privacy > Photo's and / or iOS Settings > Privacy > Camera and allow \(appName) to use them.", preferredStyle: .alert)
+        
+        let OKAction = UIAlertAction(title: "OK", style: .default) { action in
+            // ...
+        }
+        alertController.addAction(OKAction)
+        self.present(alertController, animated: true)
+    }
+    
+    private var applicationName: String {
+        if let displayName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String {
+            return displayName
+        } else {
+            return Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as! String
+        }
+    }
+
 }
 
 // MARK: - UICollectionViewDataSource
@@ -498,7 +556,6 @@ extension ImagePickerTrayController: UICollectionViewDelegateFlowLayout {
         
         return UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 6)
     }
-    
 }
 
 // MARK: - UIScrollViewDelegate
