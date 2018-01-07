@@ -69,6 +69,7 @@ class ViewController: UIViewController, ImagePickerTrayControllerDelegate {
     
     fileprivate func showImagePickerTray() {
         let controller = ImagePickerTrayController()
+        controller.allowsAutorotation = true
         controller.allowsMultipleSelection = false
         controller.add(action: .cameraAction { _ in
             print("Show Camera")

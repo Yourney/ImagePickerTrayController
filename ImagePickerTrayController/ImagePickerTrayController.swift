@@ -116,12 +116,16 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             case .landscapeRight:
                 return landscapeTrayHeight
             default:
-                // in case of 'unknown' look at the screen size
-                let screenSize = self.view.bounds.size
-                if screenSize.width < screenSize.height {
-                    return portraitTrayHeight
-                } else {
-                    return landscapeTrayHeight
+                // in case of 'unknown' or faceUp or faceDown look at the Statusbar
+                let statusbarOrientation = UIApplication.shared.statusBarOrientation
+                
+                switch statusbarOrientation {
+                    case .portrait, .portraitUpsideDown:
+                        return portraitTrayHeight
+                    case .landscapeLeft, .landscapeRight:
+                        return landscapeTrayHeight
+                    default:
+                        return portraitTrayHeight // in case of 'unknown', pick the most likely one
                 }
         }
     }
@@ -196,14 +200,15 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         let totalItemSpacing = CGFloat(numberOfRows-1)*itemSpacing + collectionView.contentInset.vertical
         let side = round((self.trayHeight - totalItemSpacing)/CGFloat(numberOfRows))
         self.imageSize = CGSize(width: side, height: side)
-        
+
         self.requestAccess()
     }
     
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        fetchAssets()
+        self.fetchAssets()
+        
         let orientation = UIApplication.shared.statusBarOrientation
         
         // check orientation, so the CameraView can be displayed in the proper orientation
@@ -393,35 +398,42 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         if UIImagePickerController.isSourceTypeAvailable(.camera) {
             let authStatus = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
             switch authStatus {
-            case .authorized : break
-            case .denied : self.showPhotoAlert()
-            case .restricted : break
-            case .notDetermined :
-                // request permission
-                AVCaptureDevice.requestAccess(for: AVMediaType.video) {
-                    (granted) in
+                case .authorized, .restricted :
                     DispatchQueue.main.async {
                         self.collectionView.reloadSections(IndexSet(integer: 1))
                     }
-                    if granted {
-                        print("Video granted")
-                    } else {
-                        print("Video not granted")
+                    break
+                case .denied : self.showPhotoAlert()
+                case .notDetermined :
+                    // request permission
+                    AVCaptureDevice.requestAccess(for: AVMediaType.video) {
+                        (granted) in
+                        DispatchQueue.main.async {
+                            self.collectionView.reloadSections(IndexSet(integer: 1))
+                        }
+                        if granted {
+                            print("Video granted")
+                        } else {
+                            print("Video not granted")
+                        }
                     }
-                }
             }
         }
         
         if UIImagePickerController.isSourceTypeAvailable(.photoLibrary) {
             let photos = PHPhotoLibrary.authorizationStatus()
             if photos == .notDetermined {
-                PHPhotoLibrary.requestAuthorization {
-                    (status) in
+                PHPhotoLibrary.requestAuthorization { (status) in
                     print("Photo library access \(status)")
+                    self.fetchAssets()
                     DispatchQueue.main.async {
-                        self.fetchAssets()
                         self.collectionView.reloadSections(IndexSet(integer: 2))
                     }
+                }
+            } else {
+                self.fetchAssets()
+                DispatchQueue.main.async {
+                    self.collectionView.reloadSections(IndexSet(integer: 2))
                 }
             }
         }
