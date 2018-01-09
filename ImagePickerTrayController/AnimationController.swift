@@ -54,6 +54,7 @@ extension AnimationController: UIViewControllerAnimatedTransitioning {
         
         if let superview = container.superview {
             if #available(iOS 11, *) {
+                // In iOS 11 attach the view to the SafeArea
                 let constraint = container.topAnchor.constraint(equalTo: superview.safeAreaLayoutGuide.bottomAnchor, constant: -trayHeight)
             	constraint.isActive = true
                 to.heightConstraint = constraint
@@ -95,8 +96,8 @@ extension AnimationController: UIViewControllerAnimatedTransitioning {
         var delta = from.trayHeight
         if #available(iOS 11, *) {
             // in iOS 11, move the view to the view bounds, which means below the safeArea.
-            if let safeFrame = from.view.superview?.safeAreaLayoutGuide.layoutFrame {
-                let bottomDistance = from.view.frame.size.height - safeFrame.size.height - safeFrame.origin.y
+            if let safeAreaFrame = from.view.superview?.safeAreaLayoutGuide.layoutFrame {
+                let bottomDistance = from.view.frame.size.height - safeAreaFrame.size.height - safeAreaFrame.origin.y
             	delta += bottomDistance
             }
         }
@@ -104,7 +105,7 @@ extension AnimationController: UIViewControllerAnimatedTransitioning {
             from.view.frame.origin.y += delta
         }, completion: { _ in
             if !transitionContext.transitionWasCancelled {
-//                from.view.removeFromSuperview()
+                from.view.removeFromSuperview()
             }
             transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
         })

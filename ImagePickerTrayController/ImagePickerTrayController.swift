@@ -29,11 +29,11 @@ public enum ImagePickerMediaType {
     @objc optional func controller(_ controller: ImagePickerTrayController, didTakeImage image:UIImage)
 }
 
-public let ImagePickerTrayWillShow: Notification.Name = Notification.Name(rawValue: "ch.laurinbrandner.ImagePickerTrayWillShow")
-public let ImagePickerTrayDidShow: Notification.Name = Notification.Name(rawValue: "ch.laurinbrandner.ImagePickerTrayDidShow")
+public let ImagePickerTrayWillShow: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerWillShow")
+public let ImagePickerTrayDidShow: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerDidShow")
 
-public let ImagePickerTrayWillHide: Notification.Name = Notification.Name(rawValue: "ch.laurinbrandner.ImagePickerTrayWillHide")
-public let ImagePickerTrayDidHide: Notification.Name = Notification.Name(rawValue: "ch.laurinbrandner.ImagePickerTrayDidHide")
+public let ImagePickerTrayWillHide: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerWillHide")
+public let ImagePickerTrayDidHide: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerDidHide")
 
 public let ImagePickerTrayFrameUserInfoKey = "ImagePickerTrayFrame"
 public let ImagePickerTrayAnimationDurationUserInfoKey = "ImagePickerTrayAnimationDuration"
@@ -270,7 +270,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             return
         }
         
-        // When rotating, iOS shall always use the shortest way to rotate to the desired angle.
+        // When rotating, iOS will always use the shortest way to rotate to the desired angle.
         // When rotating 180 degrees (for instance from landscapeLeft to landcapeRight),
         //  we need to make sure it rotates the way we want it to, hence the 0.01
         //  (which will be corrected in the completion handler)
@@ -394,6 +394,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     }
     
     private func requestAccess() {
+        var denied = false
         
         if UIImagePickerController.isSourceTypeAvailable(.camera) {
             let authStatus = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
@@ -404,7 +405,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                     }
                     break
                 case .denied:
-                    self.showPhotoAlert()
+                    denied = true
                 case .notDetermined :
                     // request permission
                     AVCaptureDevice.requestAccess(for: AVMediaType.video) {
@@ -412,23 +413,21 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                         DispatchQueue.main.async {
                             self.collectionView.reloadSections(IndexSet(integer: 1))
                         }
-                        if granted {
-                            print("Video granted")
-                        } else {
-                            print("Video not granted")
-                        }
                     }
             }
         }
         
         if UIImagePickerController.isSourceTypeAvailable(.photoLibrary) {
-            let photos = PHPhotoLibrary.authorizationStatus()
-            if photos == .notDetermined {
+            let photoStatus = PHPhotoLibrary.authorizationStatus()
+            if photoStatus == .notDetermined {
                 PHPhotoLibrary.requestAuthorization { (status) in
-                    print("Photo library access \(status)")
-                    self.fetchAssets()
-                    DispatchQueue.main.async {
-                        self.collectionView.reloadSections(IndexSet(integer: 2))
+                    if status == .authorized {
+                        self.fetchAssets()
+                        DispatchQueue.main.async {
+                            self.collectionView.reloadSections(IndexSet(integer: 2))
+                        }
+                    } else {
+                        denied = true
                     }
                 }
             } else {
@@ -437,6 +436,10 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                     self.collectionView.reloadSections(IndexSet(integer: 2))
                 }
             }
+        }
+        
+        if denied {
+            self.showPhotoAlert()
         }
     }
     
@@ -464,7 +467,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             return Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as! String
         }
     }
-
 }
 
 // MARK: - UICollectionViewDataSource
