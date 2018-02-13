@@ -132,6 +132,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
     fileprivate let actionCellWidth: CGFloat = 100
     fileprivate weak var actionCell: ActionCell?
+    fileprivate var imagePickerController: UIImagePickerController?
 
     public fileprivate(set) var actions = [ImagePickerAction]()
 
@@ -339,6 +340,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         
         parent?.dismiss(animated: true, completion: {
             parent?.present(picker, animated: true, completion: nil)
+            self.imagePickerController = picker
         })
     }
 
@@ -626,7 +628,8 @@ extension ImagePickerTrayController: UIImagePickerControllerDelegate, UINavigati
         if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
             delegate?.controller?(self, didTakeImage: image)
         }
-        self.dismiss(animated: true, completion: nil)
+        self.imagePickerController?.dismiss(animated: true, completion: nil)
+        self.imagePickerController = nil
     }
     
 }
