@@ -207,8 +207,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        self.fetchAssets()
-        
         let orientation = UIApplication.shared.statusBarOrientation
         
         // check orientation, so the CameraView can be displayed in the proper orientation
@@ -411,7 +409,9 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                     AVCaptureDevice.requestAccess(for: AVMediaType.video) {
                         (granted) in
                         DispatchQueue.main.async {
-                            self.collectionView.reloadSections(IndexSet(integer: 1))
+                            if self.collectionView.numberOfSections > 1 {
+                            	self.collectionView.reloadSections(IndexSet(integer: 1))
+                            }
                         }
                     }
             }
