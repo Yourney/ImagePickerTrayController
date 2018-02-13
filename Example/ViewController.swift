@@ -71,12 +71,6 @@ class ViewController: UIViewController, ImagePickerTrayControllerDelegate {
         let controller = ImagePickerTrayController()
         controller.allowsAutorotation = true
         controller.allowsMultipleSelection = false
-        controller.add(action: .cameraAction { _ in
-            print("Show Camera")
-        })
-        controller.add(action: .libraryAction { _ in
-            print("Show Library")
-        })
         controller.delegate = self
         present(controller, animated: true, completion: nil)
     }
@@ -123,6 +117,7 @@ class ViewController: UIViewController, ImagePickerTrayControllerDelegate {
     func controller(_ controller: ImagePickerTrayController, didTakeImage image:UIImage) {
         self.images.insert(image, at: 0)
         self.tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+        self.hideImagePickerTray()
     }
 
     func controller(_ controller: ImagePickerTrayController, didSelectAsset asset: PHAsset) {

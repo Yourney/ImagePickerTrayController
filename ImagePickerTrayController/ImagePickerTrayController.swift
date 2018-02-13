@@ -168,6 +168,8 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         transitionController = TransitionController(trayController: self)
         modalPresentationStyle = .custom
         transitioningDelegate = transitionController
+        
+        addActions()
     }
     
     public required init?(coder aDecoder: NSCoder) {
@@ -321,6 +323,25 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         self.post(name: ImagePickerTrayDidHide, frame: imagePickerFrame, duration: 0.25)
     }
     
+    func addActions() {
+        add(action: .cameraAction { _ in
+            self.showPicker(.camera, in: self.presentingViewController)
+            })
+        add(action: .libraryAction { _ in
+            self.showPicker(.photoLibrary, in: self.presentingViewController)
+            })
+    }
+    
+    func showPicker(_ type: UIImagePickerControllerSourceType, in parent: UIViewController?) {
+        let picker = UIImagePickerController()
+        picker.delegate = self
+        picker.sourceType = type
+        
+        parent?.dismiss(animated: true, completion: {
+            parent?.present(picker, animated: true, completion: nil)
+        })
+    }
+
     // MARK: - Action
     
     public func add(action: ImagePickerAction) {
@@ -334,10 +355,20 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         options.fetchLimit = 100
         
-        let result = PHAsset.fetchAssets(with: options)
+        let result = PHAsset.fetchAssets(with: PHAssetMediaType.image, options: options)
         result.enumerateObjects({ asset, index, stop in
             self.assets.append(asset)
         })
+        
+//        let result = PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.album, subtype: PHAssetCollectionSubtype.any, options: PHFetchOptions())
+//        for index in 0 ..< result.count {
+//            let album = result[index]
+//            if let fetchResult = PHAsset.fetchKeyAssets(in: album, options: fetchOptions) {
+//                fetchResult.enumerateObjects({ asset, index, stop in
+//                    self.assets.append(asset)
+//                })
+//            }
+//        }        
     }
     
     private func requestImage(for asset: PHAsset, completion: @escaping (_ image: UIImage?) -> ()) {
@@ -595,6 +626,7 @@ extension ImagePickerTrayController: UIImagePickerControllerDelegate, UINavigati
         if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
             delegate?.controller?(self, didTakeImage: image)
         }
+        self.dismiss(animated: true, completion: nil)
     }
     
 }
