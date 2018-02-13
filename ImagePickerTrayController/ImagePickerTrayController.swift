@@ -325,12 +325,17 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     }
     
     func addActions() {
-        add(action: .cameraAction { _ in
-            self.showPicker(.camera, in: self.presentingViewController)
-            })
-        add(action: .libraryAction { _ in
-            self.showPicker(.photoLibrary, in: self.presentingViewController)
-            })
+        
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            add(action: .cameraAction { _ in
+                self.showPicker(.camera, in: self.presentingViewController)
+                })
+        }
+        if UIImagePickerController.isSourceTypeAvailable(.photoLibrary) {
+            add(action: .libraryAction { _ in
+                self.showPicker(.photoLibrary, in: self.presentingViewController)
+                })
+        }
     }
     
     func showPicker(_ type: UIImagePickerControllerSourceType, in parent: UIViewController?) {
