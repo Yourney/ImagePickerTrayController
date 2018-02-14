@@ -90,6 +90,9 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     }
     public var allowsAutorotation = false
     
+    /// How many images from the PhotoLibrary will be visible in the ImagePicker?
+    public var libraryFetchLimit = 50
+    
     fileprivate var imageSize: CGSize = .zero
     var heightConstraint: NSLayoutConstraint?
     let portraitTrayHeight: CGFloat
@@ -100,22 +103,26 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     }
     
     /// The actual Tray Height.
-    // This is done based on current orientation, because that is correct while transitioning
-    // If the orientation is faceUp or faceDown, we look at the StatusBar orientation.
+    //  This is calculated based on current orientation, because that is correct while transitioning
+    //  If the orientation is faceUp or faceDown, we look at the StatusBar orientation.
     
-    var trayHeight: CGFloat {
+    internal var trayHeight: CGFloat {
         let orientation = UIDevice.current.orientation
         
         switch orientation {
             case .portrait:
                 return portraitTrayHeight
+            
             case .portraitUpsideDown:
                 return portraitTrayHeight
+            
             case .landscapeLeft:
                 return landscapeTrayHeight
+            
             case .landscapeRight:
                 return landscapeTrayHeight
-            default:
+            
+            case .unknown, .faceUp, .faceDown:
                 // in case of 'unknown' or faceUp or faceDown look at the Statusbar
                 let statusbarOrientation = UIApplication.shared.statusBarOrientation
                 
@@ -124,9 +131,9 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                         return portraitTrayHeight
                     case .landscapeLeft, .landscapeRight:
                         return landscapeTrayHeight
-                    default:
+                    case .unknown:
                         return portraitTrayHeight // in case of 'unknown', pick the most likely one
-                }
+            	}
         }
     }
     
@@ -360,7 +367,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     private func fetchAssets() {
         let options = PHFetchOptions()
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        options.fetchLimit = 100
+        options.fetchLimit = self.libraryFetchLimit
         
         let result = PHAsset.fetchAssets(with: PHAssetMediaType.image, options: options)
         result.enumerateObjects({ asset, index, stop in
