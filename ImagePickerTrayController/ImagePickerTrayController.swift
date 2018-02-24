@@ -93,6 +93,9 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     /// How many images from the PhotoLibrary will be visible in the ImagePicker?
     public var libraryFetchLimit = 50
     
+    /// Save all images made to the Photo Library
+    public var saveImagesInLibrary = false
+    
     fileprivate var imageSize: CGSize = .zero
     var heightConstraint: NSLayoutConstraint?
     let portraitTrayHeight: CGFloat
@@ -417,6 +420,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
     func cameraView(cameraView: CameraView, didTake image: UIImage) {
         self.delegate?.controller?(self, didTakeImage: image)
+        self.saveImageToLibrary(image: image)
     }
     
     // MARK: -
@@ -639,9 +643,16 @@ extension ImagePickerTrayController: UIImagePickerControllerDelegate, UINavigati
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
         if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
             delegate?.controller?(self, didTakeImage: image)
+            self.saveImageToLibrary(image: image)
         }
         self.imagePickerController?.dismiss(animated: true, completion: nil)
         self.imagePickerController = nil
     }
     
+    fileprivate func saveImageToLibrary(image: UIImage) {
+        if self.saveImagesInLibrary {
+            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+        }
+    }
+
 }
