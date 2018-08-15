@@ -42,7 +42,7 @@ fileprivate let animationDuration: TimeInterval = 0.25
 
 public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
-    fileprivate(set) lazy var collectionView: UICollectionView = {
+    fileprivate lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.minimumInteritemSpacing = itemSpacing
@@ -70,6 +70,19 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         
         return cameraView
     }()
+    
+    fileprivate var permissionsLabel: UILabel = {
+        let label = UILabel(frame: CGRect.zero)
+		label.translatesAutoresizingMaskIntoConstraints = false
+        label .isHidden = true
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.textColor = .white
+        return label
+    }()
+    fileprivate var didAskPermission: Bool = false
+    
+    public var permissionWarningText: String?
     
     fileprivate let imageManager = PHCachingImageManager()
     fileprivate var assets = [PHAsset]()
@@ -193,18 +206,32 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         super.loadView()
         
         view.backgroundColor = UIColor(red: 209.0/255.0, green: 213.0/255.0, blue: 218.0/255.0, alpha: 1.0)
-        view.addSubview(collectionView)
+        view.addSubview(self.permissionsLabel)
+
+        if #available(iOS 11, *) {
+            self.permissionsLabel.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+            self.permissionsLabel.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
+            self.permissionsLabel.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+            self.permissionsLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+        } else {
+            self.permissionsLabel.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+            self.permissionsLabel.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+            self.permissionsLabel.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
+            self.permissionsLabel.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        }
+        
+        view.addSubview(self.collectionView)
         
         if #available(iOS 11, *) {
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-            collectionView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
-            collectionView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
-            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+            self.collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+            self.collectionView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
+            self.collectionView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+            self.collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
         } else {
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-            collectionView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-            collectionView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+            self.collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+            self.collectionView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+            self.collectionView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
+            self.collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         }
 
         collectionView.allowsMultipleSelection = allowsMultipleSelection
@@ -251,7 +278,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         super.viewDidLayoutSubviews()
 
         reloadActionCellDisclosureProgress()
-        self.collectionView.reloadData()
+        self.reloadData()
     }
     
     override public func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -264,7 +291,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         self.imageSize = CGSize(width: side, height: side)
 
         self.heightConstraint?.constant = -self.trayHeight
-        self.collectionView.reloadData()
+        self.reloadData()
         
         let angle: CGFloat
         
@@ -334,17 +361,45 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         self.post(name: ImagePickerTrayDidHide, frame: imagePickerFrame, duration: 0.25)
     }
     
+    func reloadData() {
+        self.collectionView.reloadData()
+        
+        if self.didAskPermission && self.actions.count == 0 {
+            UIView.animate(withDuration: 0.3) {
+                self.permissionsLabel.text = self.permissionWarningText
+                self.permissionsLabel.isHidden = false
+            }
+        } else {
+            UIView.animate(withDuration: 0.2, animations: {
+                self.permissionsLabel.isHidden = false
+            }, completion: {
+                finished in
+                self.permissionsLabel.text = nil
+            })
+        }
+    }
+    
     func addActions() {
+        self.actions = []
         
         if UIImagePickerController.isSourceTypeAvailable(.camera) {
-            add(action: .cameraAction { _ in
-                self.showPicker(.camera, in: self.presentingViewController)
+            let authStatus = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
+            switch authStatus {
+            case .authorized, .restricted :
+                self.add(action: .cameraAction { _ in
+                    self.showPicker(.camera, in: self.presentingViewController)
                 })
+            default:
+                break
+            }
         }
         if UIImagePickerController.isSourceTypeAvailable(.photoLibrary) {
-            add(action: .libraryAction { _ in
-                self.showPicker(.photoLibrary, in: self.presentingViewController)
+            let photoStatus = PHPhotoLibrary.authorizationStatus()
+            if photoStatus == .authorized {
+                self.add(action: .libraryAction { _ in
+                    self.showPicker(.photoLibrary, in: self.presentingViewController)
                 })
+            }
         }
     }
     
@@ -353,7 +408,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         picker.delegate = self
         picker.sourceType = type
         
-        parent?.dismiss(animated: true, completion: {
+        self.dismiss(animated: true, completion: {
             parent?.present(picker, animated: true, completion: nil)
             self.imagePickerController = picker
         })
@@ -448,7 +503,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             switch authStatus {
                 case .authorized, .restricted :
                     DispatchQueue.main.async {
-                        self.collectionView.reloadSections(IndexSet(integer: 1))
+                        self.reloadData()
                     }
                     break
                 case .denied:
@@ -459,7 +514,9 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                         (granted) in
                         DispatchQueue.main.async {
                             if self.collectionView.numberOfSections > 1 {
-                            	self.collectionView.reloadSections(IndexSet(integer: 1))
+	                            self.addActions()
+                                self.didAskPermission = true
+                                self.reloadData()
                             }
                         }
                     }
@@ -470,10 +527,12 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             let photoStatus = PHPhotoLibrary.authorizationStatus()
             if photoStatus == .notDetermined {
                 PHPhotoLibrary.requestAuthorization { (status) in
+                    self.didAskPermission = true
                     if status == .authorized {
                         self.fetchAssets()
                         DispatchQueue.main.async {
-                            self.collectionView.reloadSections(IndexSet(integer: 2))
+                            self.addActions()
+                            self.reloadData()
                         }
                     } else {
                         denied = true
@@ -488,15 +547,20 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         }
         
         if denied {
+            self.didAskPermission = true
             self.showPhotoAlert()
         }
     }
     
     private func showPhotoAlert() {
+        if self.permissionWarningText == nil {
+            return
+        }
+        
         // This will typically be checked at the start of the animation.
         // It is not allowed to show an Alert during animation, hence we will delay this showing for at least the duration of the animation:
         let delay = 0.3 // animation = 0.25
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(Int64(delay * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             let appName = self.applicationName
             
             let alertController = UIAlertController(title: "Permissions", message: "Your privacy settings in iOS do not allow the use of the Camera and / or Photos. Please go to your iOS Settings > Privacy > Photo's and / or iOS Settings > Privacy > Camera and allow \(appName) to use them.", preferredStyle: .alert)
@@ -532,32 +596,32 @@ extension ImagePickerTrayController: UICollectionViewDataSource {
     
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         switch indexPath.section {
-        case 0:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NSStringFromClass(ActionCell.self), for: indexPath) as! ActionCell
-            cell.actions = actions
-            actionCell = cell
-            reloadActionCellDisclosureProgress()
-            cell.clipsToBounds = true
-            return cell
-        case 1:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NSStringFromClass(CameraCell.self), for: indexPath) as! CameraCell
-            if cell.cameraView == nil {
-                cell.cameraView = self.cameraView
-                cell.cameraOverlayView = CameraOverlayView()
-            }
-            cell.clipsToBounds = true
-            return cell
-        case 2:
-            let asset = assets[indexPath.item]
-            
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NSStringFromClass(ImageCell.self), for: indexPath) as! ImageCell
-            cell.isVideo = (asset.mediaType == .video)
-            cell.isRemote = (asset.sourceType != .typeUserLibrary)
-            requestImage(for: asset) { cell.imageView.image = $0 }
-            cell.clipsToBounds = true
-            return cell
-        default:
-            fatalError("More than 3 sections is invalid.")
+            case 0:
+                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NSStringFromClass(ActionCell.self), for: indexPath) as! ActionCell
+                cell.actions = actions
+                actionCell = cell
+                reloadActionCellDisclosureProgress()
+                cell.clipsToBounds = true
+                return cell
+            case 1:
+                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NSStringFromClass(CameraCell.self), for: indexPath) as! CameraCell
+                if cell.cameraView == nil {
+                    cell.cameraView = self.cameraView
+                    cell.cameraOverlayView = CameraOverlayView()
+                }
+                cell.clipsToBounds = true
+                return cell
+            case 2:
+                let asset = assets[indexPath.item]
+                
+                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NSStringFromClass(ImageCell.self), for: indexPath) as! ImageCell
+                cell.isVideo = (asset.mediaType == .video)
+                cell.isRemote = (asset.sourceType != .typeUserLibrary)
+                requestImage(for: asset) { cell.imageView.image = $0 }
+                cell.clipsToBounds = true
+                return cell
+            default:
+                fatalError("More than 3 sections is invalid.")
         }
     }
 }

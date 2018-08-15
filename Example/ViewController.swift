@@ -72,6 +72,7 @@ class ViewController: UIViewController, ImagePickerTrayControllerDelegate {
         controller.allowsAutorotation = true
         controller.allowsMultipleSelection = false
         controller.delegate = self
+        controller.permissionWarningText = "Please set your permissions."
         present(controller, animated: true, completion: nil)
     }
     
