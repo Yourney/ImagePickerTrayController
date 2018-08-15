@@ -540,7 +540,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         // It is not allowed to show an Alert during animation, hence we will delay this showing for at least the duration of the animation:
         let delay = 0.3 // animation = 0.25
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            let alertController = UIAlertController(title: "Permissions", message: self.permissionWarningText, preferredStyle: .alert)
+            let alertController = UIAlertController(title: nil, message: self.permissionWarningText, preferredStyle: .alert)
             
             let OKAction = UIAlertAction(title: "OK", style: .default) { action in
                 // ...
