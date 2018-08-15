@@ -80,7 +80,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         label.textColor = .white
         return label
     }()
-    fileprivate var didAskPermission: Bool = false
     
     public var permissionWarningText: String?
     
@@ -363,20 +362,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     
     func reloadData() {
         self.collectionView.reloadData()
-        
-        if self.didAskPermission && self.actions.count == 0 {
-            UIView.animate(withDuration: 0.3) {
-                self.permissionsLabel.text = self.permissionWarningText
-                self.permissionsLabel.isHidden = false
-            }
-        } else {
-            UIView.animate(withDuration: 0.2, animations: {
-                self.permissionsLabel.isHidden = false
-            }, completion: {
-                finished in
-                self.permissionsLabel.text = nil
-            })
-        }
     }
     
     func addActions() {
@@ -515,7 +500,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
                         DispatchQueue.main.async {
                             if self.collectionView.numberOfSections > 1 {
 	                            self.addActions()
-                                self.didAskPermission = true
                                 self.reloadData()
                             }
                         }
@@ -527,7 +511,6 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
             let photoStatus = PHPhotoLibrary.authorizationStatus()
             if photoStatus == .notDetermined {
                 PHPhotoLibrary.requestAuthorization { (status) in
-                    self.didAskPermission = true
                     if status == .authorized {
                         self.fetchAssets()
                         DispatchQueue.main.async {
@@ -547,23 +530,17 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         }
         
         if denied {
-            self.didAskPermission = true
             self.showPhotoAlert()
         }
     }
     
     private func showPhotoAlert() {
-        if self.permissionWarningText == nil {
-            return
-        }
         
         // This will typically be checked at the start of the animation.
         // It is not allowed to show an Alert during animation, hence we will delay this showing for at least the duration of the animation:
         let delay = 0.3 // animation = 0.25
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            let appName = self.applicationName
-            
-            let alertController = UIAlertController(title: "Permissions", message: "Your privacy settings in iOS do not allow the use of the Camera and / or Photos. Please go to your iOS Settings > Privacy > Photo's and / or iOS Settings > Privacy > Camera and allow \(appName) to use them.", preferredStyle: .alert)
+            let alertController = UIAlertController(title: "Permissions", message: self.permissionWarningText, preferredStyle: .alert)
             
             let OKAction = UIAlertAction(title: "OK", style: .default) { action in
                 // ...
