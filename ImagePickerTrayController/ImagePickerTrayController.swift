@@ -82,6 +82,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     }()
     
     public var permissionWarningText: String?
+    public var statusBarStyle: UIStatusBarStyle = .default
     
     fileprivate let imageManager = PHCachingImageManager()
     fileprivate var assets = [PHAsset]()
@@ -243,6 +244,10 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         self.requestAccess()
     }
     
+    override public var preferredStatusBarStyle: UIStatusBarStyle {
+        return self.statusBarStyle
+    }
+
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
