@@ -394,9 +394,10 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
     }
     
     func showPicker(_ type: UIImagePickerControllerSourceType, in parent: UIViewController?) {
-        let picker = UIImagePickerController()
+        let picker = ImagePickerController()
         picker.delegate = self
         picker.sourceType = type
+        picker.statusBarStyle = self.statusBarStyle
         
         self.dismiss(animated: true, completion: {
             parent?.present(picker, animated: true, completion: nil)
@@ -703,6 +704,15 @@ extension ImagePickerTrayController: UIImagePickerControllerDelegate, UINavigati
         if self.saveImagesInLibrary {
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
         }
+    }
+
+}
+
+private class ImagePickerController: UIImagePickerController {
+    public var statusBarStyle: UIStatusBarStyle = .default
+
+    override public var preferredStatusBarStyle: UIStatusBarStyle {
+        return self.statusBarStyle
     }
 
 }
