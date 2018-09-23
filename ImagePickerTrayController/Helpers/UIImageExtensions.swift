@@ -19,7 +19,7 @@ extension UIImage {
     // http://stackoverflow.com/questions/5427656/ios-uiimagepickercontroller-result-image-orientation-after-upload
     public func normalizedImage() -> UIImage {
         
-        if (self.imageOrientation == UIImageOrientation.up) {
+        if (self.imageOrientation == UIImage.Orientation.up) {
             return self;
         }
         

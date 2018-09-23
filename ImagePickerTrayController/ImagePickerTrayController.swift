@@ -393,7 +393,7 @@ public class ImagePickerTrayController: UIViewController, CameraViewDelegate {
         }
     }
     
-    func showPicker(_ type: UIImagePickerControllerSourceType, in parent: UIViewController?) {
+    func showPicker(_ type: UIImagePickerController.SourceType, in parent: UIViewController?) {
         let picker = ImagePickerController()
         picker.delegate = self
         picker.sourceType = type
@@ -692,7 +692,7 @@ extension ImagePickerTrayController: UIScrollViewDelegate {
 extension ImagePickerTrayController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
-        if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
+        if let image = info[UIImagePickerController.InfoKey.originalImage.rawValue] as? UIImage {
             delegate?.controller?(self, didTakeImage: image)
             self.saveImageToLibrary(image: image)
         }
