@@ -29,11 +29,11 @@ public enum ImagePickerMediaType {
     @objc optional func controller(_ controller: ImagePickerTrayController, didTakeImage image:UIImage)
 }
 
-public let ImagePickerTrayWillShow: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerWillShow")
-public let ImagePickerTrayDidShow: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerDidShow")
+public let ImagePickerTrayWillShow = Notification.Name(rawValue: "ImagePickerTrayControllerWillShow")
+public let ImagePickerTrayDidShow  = Notification.Name(rawValue: "ImagePickerTrayControllerDidShow")
 
-public let ImagePickerTrayWillHide: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerWillHide")
-public let ImagePickerTrayDidHide: Notification.Name = Notification.Name(rawValue: "ImagePickerTrayControllerDidHide")
+public let ImagePickerTrayWillHide = Notification.Name(rawValue: "ImagePickerTrayControllerWillHide")
+public let ImagePickerTrayDidHide  = Notification.Name(rawValue: "ImagePickerTrayControllerDidHide")
 
 public let ImagePickerTrayFrameUserInfoKey = "ImagePickerTrayFrame"
 public let ImagePickerTrayAnimationDurationUserInfoKey = "ImagePickerTrayAnimationDuration"
@@ -691,8 +691,8 @@ extension ImagePickerTrayController: UIScrollViewDelegate {
 
 extension ImagePickerTrayController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
-    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
-        if let image = info[UIImagePickerController.InfoKey.originalImage.rawValue] as? UIImage {
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        if let image = info[UIImagePickerController.InfoKey.originalImage] as? UIImage {
             delegate?.controller?(self, didTakeImage: image)
             self.saveImageToLibrary(image: image)
         }
