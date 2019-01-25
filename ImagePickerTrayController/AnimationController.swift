@@ -47,7 +47,7 @@ extension AnimationController: UIViewControllerAnimatedTransitioning {
         let container = transitionContext.containerView
         container.backgroundColor = .clear
         
-        container.window?.addGestureRecognizer(gestureRecognizer)
+//        container.window?.addGestureRecognizer(gestureRecognizer)
         
         let trayHeight = to.trayHeight
         container.translatesAutoresizingMaskIntoConstraints = false
