@@ -694,7 +694,6 @@ extension ImagePickerTrayController: UIImagePickerControllerDelegate, UINavigati
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         if let image = info[UIImagePickerController.InfoKey.originalImage] as? UIImage {
             delegate?.controller?(self, didTakeImage: image)
-            self.saveImageToLibrary(image: image)
         }
         self.imagePickerController?.dismiss(animated: true, completion: nil)
         self.imagePickerController = nil
